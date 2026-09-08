@@ -181,8 +181,9 @@ local function draw()
             local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
             local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
             if name == "Motor Status" then
-                local statusColor = online and (entry.value and colors.lime or colors.red) or colors.gray
-                local statusText = online and (entry.value and "LAEUFT" or "STOPP") or "WARTET"
+                local motorRunning = entry.value == true or (type(entry.value) == "number" and entry.value > 0)
+                local statusColor = online and (motorRunning and colors.lime or colors.red) or colors.gray
+                local statusText = online and (motorRunning and "LAEUFT" or "STOPP") or "WARTET"
                 centerTextInWidth(x0, cardWidth - 1, y0, name, colors.orange, colors.black)
                 centerTextInWidth(x0, cardWidth - 1, y0 + 2, statusText, statusColor, colors.black)
             else
