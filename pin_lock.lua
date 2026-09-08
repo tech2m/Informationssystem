@@ -47,7 +47,6 @@ local function draw()
     end
 
     centerText(math.floor(h / 2) - 2, "PIN-FREIGABE", colors.lightBlue, colors.black)
-    centerText(math.floor(h / 2), "PIN: " .. string.rep("*", #enteredPin), colors.white, colors.black)
     centerText(math.floor(h / 2) + 2, message, messageColor, colors.black)
 end
 
@@ -60,7 +59,7 @@ while true do
             if key == keys.enter then
                 unlocked = false
                 enteredPin = ""
-                message = "FREIGABE BEENDET"
+                message = "PIN EINGEBEN"
                 messageColor = colors.orange
                 break
             end
