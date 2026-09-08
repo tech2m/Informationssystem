@@ -14,6 +14,7 @@
 local config = {
     modemSide   = "top",   -- Seite des Modems
     monitorSide = nil,      -- z.B. "right" - nil = automatisch suchen
+    activationSide = "left", -- Redstone-Signal zum Aktivieren der Anzeige
     protocol    = "rsinfo", -- muss mit client.lua uebereinstimmen
     textScale   = 0.5,      -- Textgroesse auf dem Monitor
     staleAfter  = 15,       -- Sekunden ohne Update -> "Offline"
@@ -83,6 +84,7 @@ local function fillLine(y, bg)
 end
 
 local function centerText(y, text, fg, bg)
+    text = tostring(text or "")
     monitor.setBackgroundColor(bg or colors.black)
     monitor.setTextColor(fg or colors.white)
     local x = math.max(1, math.floor((w - #text) / 2) + 1)
@@ -91,6 +93,7 @@ local function centerText(y, text, fg, bg)
 end
 
 local function centerTextInWidth(x0, width, y, text, fg, bg)
+    text = tostring(text or "")
     monitor.setBackgroundColor(bg or colors.black)
     monitor.setTextColor(fg or colors.white)
     if #text > width then text = text:sub(1, width) end
@@ -118,58 +121,22 @@ end
 -- Zeichnet einen halbrunden Tacho (Dome-Form, Nadel am unteren Mittelpunkt)
 -- x0,y0 = obere linke Ecke der Kachel, width/height = Kachelgroesse
 local function drawGauge(x0, y0, width, height, entry, online)
-    local name  = entry.name
-    local value = entry.value or 0
-    local max   = entry.max or 15
+    local name = entry.name or "Unbekannt"
+    local value = tonumber(entry.value) or 0
+    local max = tonumber(entry.max) or 15
     if max <= 0 then max = 1 end
-    local fraction = value / max
-    if fraction < 0 then fraction = 0 end
-    if fraction > 1 then fraction = 1 end
+    local fraction = math.max(0, math.min(1, value / max))
+    local barWidth = math.max(8, width - 4)
+    local filled = math.floor(barWidth * fraction + 0.5)
+    local barColor = thresholdColor(fraction, online)
 
-    -- Geometrie: X-Radius groesser als Y-Radius, da Zeichen hoeher als breit sind
-    local radiusX = math.floor(width / 2) - 1
-    local radiusY = math.max(2, math.floor(height / 2) - 1)
-    local cx = x0 + math.floor(width / 2)
-    local cy = y0 + radiusY + 1  -- Drehpunkt/Basis der Nadel
-
-    -- Name ueber dem Gauge
     centerTextInWidth(x0, width, y0, name, online and colors.white or colors.gray, colors.black)
+    centerTextInWidth(x0, width, y0 + 2, "[" .. string.rep("=", filled) .. string.rep(".", barWidth - filled) .. "]", barColor, colors.black)
 
-    -- Bogen von 180 Grad (links) ueber 270 Grad (oben) bis 360 Grad (rechts)
-    local steps = 24
-    for i = 0, steps do
-        local angle = 180 + (180 * i / steps)
-        local rad = math.rad(angle)
-        local px = cx + round(math.cos(rad) * radiusX)
-        local py = cy + round(math.sin(rad) * radiusY)
-        local pointFraction = i / steps
-        local lit = pointFraction <= fraction
-        local col = lit and thresholdColor(pointFraction, online) or colors.gray
-        plot(px, py, "\007", col, colors.black)
-    end
-
-    -- Nadel vom Mittelpunkt zum aktuellen Wert
-    local needleAngle = math.rad(180 + 180 * fraction)
-    local needleSteps = math.max(radiusX, radiusY)
-    for i = 1, needleSteps do
-        local t = i / needleSteps
-        local px = cx + round(math.cos(needleAngle) * radiusX * t)
-        local py = cy + round(math.sin(needleAngle) * radiusY * t)
-        plot(px, py, "\007", online and colors.white or colors.gray, colors.black)
-    end
-
-    -- Drehpunkt
-    plot(cx, cy, "\007", online and colors.lightGray or colors.gray, colors.black)
-
-    -- Wert unter dem Gauge
     local unit = entry.unit or ""
-    local valueStr
-    if online then
-        valueStr = string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "")
-    else
-        valueStr = "offline"
-    end
-    centerTextInWidth(x0, width, y0 + height - 1, valueStr, thresholdColor(fraction, online), colors.black)
+    local valueStr = online and string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "") or "offline"
+    centerTextInWidth(x0, width, y0 + 4, valueStr, online and colors.white or colors.gray, colors.black)
+    centerTextInWidth(x0, width, y0 + 6, online and "ONLINE" or "OFFLINE", barColor, colors.black)
 end
 
 -- ================= UI ZEICHNEN =================
@@ -178,80 +145,39 @@ local function draw()
     monitor.setBackgroundColor(colors.black)
     monitor.clear()
 
-    -- Kopfzeile
-    fillLine(1, colors.gray)
-    centerText(1, "CREATE - INFORMATIONSSYSTEM", colors.white, colors.gray)
-    fillLine(2, colors.black)
+    local active = redstone.getInput(config.activationSide)
+    if not active then return end
+
+    fillLine(1, colors.blue)
+    centerText(1, "MOTOR CONTROL // LIVE", colors.white, colors.blue)
     centerText(2, os.date("%d.%m.%Y  %H:%M:%S"), colors.lightGray, colors.black)
 
-    -- Nach Kategorie gruppieren
-    local categories = {}
-    local total = 0
-    for name, d in pairs(data) do
-        categories[d.category] = categories[d.category] or {}
-        table.insert(categories[d.category], { name = name, d = d })
-        total = total + 1
-    end
+    if active then
+        local now = os.epoch("utc")
+        local cardWidth = math.max(16, math.floor(w / 2))
+        local positions = {
+            { "Motor Status", 1, 4 },
+            { "Motor Stress", cardWidth + 1, 4 },
+            { "Fan Links Speed", 1, 13 },
+            { "Fan Rechts Speed", cardWidth + 1, 13 },
+        }
 
-    local sortedCats = {}
-    for cat in pairs(categories) do table.insert(sortedCats, cat) end
-    table.sort(sortedCats)
-
-    if total == 0 then
-        centerText(math.floor(h / 2), "Warte auf Daten von Sensoren...", colors.gray, colors.black)
-    end
-
-    local now = os.epoch("utc")
-    local y = 4
-    local perRow = math.max(1, math.floor(w / config.gaugeWidth))
-
-    for _, cat in ipairs(sortedCats) do
-        if y > h - 1 then break end
-
-        local cc = colorFor(cat)
-        monitor.setBackgroundColor(cc)
-        monitor.setCursorPos(1, y)
-        monitor.write(string.rep(" ", w))
-        monitor.setTextColor(colors.black)
-        monitor.setCursorPos(2, y)
-        monitor.write(cat)
-        y = y + 1
-
-        local entries = categories[cat]
-        table.sort(entries, function(a, b) return a.name < b.name end)
-
-        local col = 0
-        for _, entry in ipairs(entries) do
-            if y + config.gaugeHeight - 1 > h then break end
-
-            local x0 = col * config.gaugeWidth + 1
-            local d = entry.d
-            local ageSec = (now - d.lastUpdate) / 1000
-            local online = ageSec <= config.staleAfter
-
-            drawGauge(x0, y, config.gaugeWidth, config.gaugeHeight, d, online)
-
-            col = col + 1
-            if col >= perRow then
-                col = 0
-                y = y + config.gaugeHeight
+        for _, item in ipairs(positions) do
+            local name, x0, y0 = item[1], item[2], item[3]
+            local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
+            local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
+            if name == "Motor Status" then
+                centerTextInWidth(x0, cardWidth - 1, y0, name, colors.white, colors.black)
+                centerTextInWidth(x0, cardWidth - 1, y0 + 2, online and (entry.value and "TRUE" or "FALSE") or "OFFLINE", online and (entry.value and colors.lime or colors.red) or colors.gray, colors.black)
+                centerTextInWidth(x0, cardWidth - 1, y0 + 4, online and "DIGITAL STATUS" or "NO SIGNAL", colors.lightGray, colors.black)
+            else
+                drawGauge(x0, y0, cardWidth - 1, config.gaugeHeight, entry, online)
             end
         end
-
-        if col ~= 0 then
-            y = y + config.gaugeHeight
-        end
-        y = y + 1
     end
 
-    -- Fusszeile
-    fillLine(h, colors.gray)
-    monitor.setTextColor(colors.white)
-    monitor.setCursorPos(2, h)
-    monitor.write("Geraete: " .. total)
-    local idStr = "ID: " .. os.getComputerID()
-    monitor.setCursorPos(w - #idStr - 1, h)
-    monitor.write(idStr)
+    fillLine(h, colors.blue)
+    centerTextInWidth(1, w, h, active and "ACTIVE  |  REDSTONE ON" or "STANDBY  |  REDSTONE OFF", colors.white, colors.blue)
 end
 
 -- ================= EMPFANGEN =================

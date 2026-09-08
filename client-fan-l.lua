@@ -20,11 +20,11 @@
 
 local config = {
     -- Seite, an der das Modem hängt
-    modemSide = "back",
+    modemSide = "top",
 
     -- ID des Zentralrechners (im Zentral-Programm wird die
     -- eigene ID beim Start ausgegeben -> hier eintragen!)
-    centralID = 0,
+    centralID = 378,
 
     -- Rednet-Protokoll (muss mit server.lua übereinstimmen)
     protocol = "rsinfo",
@@ -39,10 +39,7 @@ local config = {
     -- max   = realer Maximalwert, den "15" darstellen soll
     -- unit  = Einheit fürs Label (z.B. "RPM", "SU")
     sensors = {
-        { side = "top", name = "Motor Status", category = "STATUS", digital = true },
-        { side = "left", name = "Motor Stress", category = "GAUGE", max = 4096, unit = "SU" },
-        { side = "right", name = "Fan Links Speed", category = "GAUGE", max = 256, unit = "RPM" },
-        { side = "bottom", name = "Fan Rechts Speed", category = "GAUGE", max = 256, unit = "RPM" },
+        { side = "left", name = "Fan Links Speed", category = "GAUGE", max = 256, unit = "RPM" },
     },
 }
 
