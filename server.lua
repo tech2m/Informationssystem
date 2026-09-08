@@ -261,6 +261,7 @@ local function listen()
         local senderId, message, protocol = rednet.receive(config.protocol)
         if type(message) == "table" and message.name and message.category then
             data[message.name] = {
+                name       = message.name,
                 category   = message.category,
                 value      = message.value,
                 max        = message.max,
