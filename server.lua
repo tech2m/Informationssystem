@@ -129,14 +129,14 @@ local function drawGauge(x0, y0, width, height, entry, online)
     local barWidth = math.max(8, width - 4)
     local filled = math.floor(barWidth * fraction + 0.5)
     local barColor = thresholdColor(fraction, online)
+    local accentColor = colorFor(name)
 
-    centerTextInWidth(x0, width, y0, name, online and colors.white or colors.gray, colors.black)
+    centerTextInWidth(x0, width, y0, name, online and accentColor or colors.gray, colors.black)
     centerTextInWidth(x0, width, y0 + 2, "[" .. string.rep("=", filled) .. string.rep(".", barWidth - filled) .. "]", barColor, colors.black)
 
     local unit = entry.unit or ""
-    local valueStr = online and string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "") or "offline"
+    local valueStr = online and string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "") or "--"
     centerTextInWidth(x0, width, y0 + 4, valueStr, online and colors.white or colors.gray, colors.black)
-    centerTextInWidth(x0, width, y0 + 6, online and "ONLINE" or "OFFLINE", barColor, colors.black)
 end
 
 -- ================= UI ZEICHNEN =================
@@ -167,9 +167,11 @@ local function draw()
             local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
             local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
             if name == "Motor Status" then
-                centerTextInWidth(x0, cardWidth - 1, y0, name, colors.white, colors.black)
-                centerTextInWidth(x0, cardWidth - 1, y0 + 2, online and (entry.value and "TRUE" or "FALSE") or "OFFLINE", online and (entry.value and colors.lime or colors.red) or colors.gray, colors.black)
-                centerTextInWidth(x0, cardWidth - 1, y0 + 4, online and "DIGITAL STATUS" or "NO SIGNAL", colors.lightGray, colors.black)
+                local statusColor = online and (entry.value and colors.lime or colors.red) or colors.gray
+                local statusText = online and (entry.value and "LAEUFT" or "STOPP") or "WARTET"
+                centerTextInWidth(x0, cardWidth - 1, y0, name, colors.orange, colors.black)
+                centerTextInWidth(x0, cardWidth - 1, y0 + 2, statusText, statusColor, colors.black)
+                centerTextInWidth(x0, cardWidth - 1, y0 + 4, "MOTORZUSTAND", colors.lightGray, colors.black)
             else
                 drawGauge(x0, y0, cardWidth - 1, config.gaugeHeight, entry, online)
             end
