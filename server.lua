@@ -135,7 +135,16 @@ local function drawGauge(x0, y0, width, height, entry, online)
     centerTextInWidth(x0, width, y0 + 2, "[" .. string.rep("=", filled) .. string.rep(".", barWidth - filled) .. "]", barColor, colors.black)
 
     local unit = entry.unit or ""
-    local valueStr = online and string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "") or "--"
+    local valueStr
+    if online then
+        if name == "Motor Stress" then
+            valueStr = string.format("%.0f %%", fraction * 100)
+        else
+            valueStr = string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "")
+        end
+    else
+        valueStr = "--"
+    end
     centerTextInWidth(x0, width, y0 + 4, valueStr, online and colors.white or colors.gray, colors.black)
 end
 
@@ -183,7 +192,7 @@ local function draw()
     end
 
     fillLine(h, colors.blue)
-    centerTextInWidth(1, w, h, active and "ACTIVE" or "STANDBY", colors.white, colors.blue)
+    centerTextInWidth(1, w, h, active and "AKTIV" or "STANDBY", colors.white, colors.blue)
 end
 
 -- ================= EMPFANGEN =================

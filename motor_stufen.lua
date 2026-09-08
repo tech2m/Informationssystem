@@ -103,8 +103,7 @@ local function draw()
 
     setOutput()
     fillLine(1, colors.blue)
-    centerText(1, "Status Dashboard", colors.white, colors.blue)
-    centerText(2, os.date("%d.%m.%Y  %H:%M:%S"), colors.lightGray, colors.black)
+    centerText(1, "Steuerung", colors.white, colors.blue)
 
     local contentWidth = math.max(16, math.floor(w / 2))
     local startX = math.floor((w - contentWidth) / 2) + 1
@@ -117,7 +116,7 @@ local function draw()
     centerText(math.min(h - 2, startY + 10), "AUSGANGSSIGNAL", colors.lightGray, colors.black)
     centerText(math.min(h - 1, startY + 11), outputEnabled and ("STUFE " .. selectedLevel .. "  |  REDSTONE " .. selectedLevel) or "AUS  |  REDSTONE 0", outputEnabled and palette[selectedLevel] or colors.red, colors.black)
     fillLine(h, colors.blue)
-    centerTextInWidth(1, w, h, "ACTIVE", colors.white, colors.blue)
+    centerTextInWidth(1, w, h, "AKTIV", colors.white, colors.blue)
 end
 
 local function refresh()
