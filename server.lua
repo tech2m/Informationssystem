@@ -146,14 +146,21 @@ local function draw()
     monitor.clear()
 
     local active = redstone.getInput(config.activationSide)
-    if not active then return end
+    if not active then
+        fillLine(1, colors.gray)
+        centerText(1, "MOTOR CONTROL", colors.white, colors.gray)
+        centerText(math.floor(h / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
+        centerText(math.floor(h / 2) + 1, "Redstone-Signal erwartet", colors.lightGray, colors.black)
+        fillLine(h, colors.gray)
+        centerTextInWidth(1, w, h, "STANDBY  |  REDSTONE OFF", colors.white, colors.gray)
+        return
+    end
 
     fillLine(1, colors.blue)
     centerText(1, "MOTOR CONTROL // LIVE", colors.white, colors.blue)
     centerText(2, os.date("%d.%m.%Y  %H:%M:%S"), colors.lightGray, colors.black)
 
-    if active then
-        local now = os.epoch("utc")
+    local now = os.epoch("utc")
         local cardWidth = math.max(16, math.floor(w / 2))
         local positions = {
             { "Motor Status", 1, 4 },
@@ -162,7 +169,7 @@ local function draw()
             { "Fan Rechts Speed", cardWidth + 1, 13 },
         }
 
-        for _, item in ipairs(positions) do
+    for _, item in ipairs(positions) do
             local name, x0, y0 = item[1], item[2], item[3]
             local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
             local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
@@ -175,7 +182,6 @@ local function draw()
             else
                 drawGauge(x0, y0, cardWidth - 1, config.gaugeHeight, entry, online)
             end
-        end
     end
 
     fillLine(h, colors.blue)
