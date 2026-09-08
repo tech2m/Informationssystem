@@ -150,7 +150,6 @@ local function draw()
         fillLine(1, colors.gray)
         centerText(1, "Status Dashboard", colors.white, colors.gray)
         centerText(math.floor(h / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
-        centerText(math.floor(h / 2) + 1, "Brücke muss aktiviert werden", colors.lightGray, colors.black)
         fillLine(h, colors.gray)
         centerTextInWidth(1, w, h, "STANDBY", colors.white, colors.gray)
         return
