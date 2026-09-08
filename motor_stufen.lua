@@ -25,7 +25,7 @@ if not monitor then error("Kein Monitor gefunden!") end
 monitor.setTextScale(config.textScale)
 local w, h = monitor.getSize()
 local selectedLevel = 1
-local outputEnabled = true
+local outputEnabled = false
 
 local palette = {
     colors.cyan,
