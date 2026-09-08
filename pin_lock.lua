@@ -19,12 +19,6 @@ local unlocked = false
 local message = "PIN EINGEBEN"
 local messageColor = colors.lightBlue
 
-local function fillLine(y, bg)
-    term.setBackgroundColor(bg)
-    term.setCursorPos(1, y)
-    term.write(string.rep(" ", w))
-end
-
 local function centerText(y, text, fg, bg)
     text = tostring(text or "")
     term.setBackgroundColor(bg or colors.black)
@@ -47,30 +41,34 @@ local function draw()
     term.clear()
     setOutput()
 
-    fillLine(1, unlocked and colors.lime or colors.blue)
-    centerText(1, "Status Dashboard", unlocked and colors.black or colors.white, unlocked and colors.lime or colors.blue)
-    centerText(2, unlocked and "MOTOR FREIGEGEBEN" or "PIN-FREIGABE", colors.lightGray, colors.black)
+    if unlocked then
+        centerText(math.floor(h / 2), "FREIGEGEBEN - ENTER zum deaktivieren", colors.lime, colors.black)
+        return
+    end
 
-    local pinDisplay = unlocked and "SIGNAL AKTIV" or "PIN: " .. string.rep("*", #enteredPin)
-    centerText(math.max(4, math.floor(h / 2) - 5), pinDisplay, unlocked and colors.lime or colors.white, colors.black)
-    centerText(math.max(5, math.floor(h / 2) - 3), message, messageColor, colors.black)
-    fillLine(h, unlocked and colors.lime or colors.blue)
-    centerText(h, unlocked and "AKTIV  |  ENTER ZUM BEENDEN" or "BEREIT  |  PIN EINGEBEN", colors.black, unlocked and colors.lime or colors.blue)
+    centerText(math.floor(h / 2) - 2, "PIN-FREIGABE", colors.lightBlue, colors.black)
+    centerText(math.floor(h / 2), "PIN: " .. string.rep("*", #enteredPin), colors.white, colors.black)
+    centerText(math.floor(h / 2) + 2, message, messageColor, colors.black)
 end
 
 while true do
     draw()
-    term.setCursorPos(1, math.min(h - 2, math.floor(h / 2) + 2))
-    term.setTextColor(colors.white)
-    term.setBackgroundColor(colors.black)
 
     if unlocked then
-        read()
-        unlocked = false
-        enteredPin = ""
-        message = "FREIGABE BEENDET"
-        messageColor = colors.orange
+        while true do
+            local event, key = os.pullEvent("key")
+            if key == keys.enter then
+                unlocked = false
+                enteredPin = ""
+                message = "FREIGABE BEENDET"
+                messageColor = colors.orange
+                break
+            end
+        end
     else
+        term.setCursorPos(1, math.min(h, math.floor(h / 2) + 4))
+        term.setTextColor(colors.white)
+        term.setBackgroundColor(colors.black)
         local input = read("*")
         if input == config.pin then
             unlocked = true
