@@ -166,7 +166,6 @@ local function draw()
 
     fillLine(1, colors.blue)
     centerText(1, "Status Dashboard", colors.white, colors.blue)
-    centerText(2, os.date("%d.%m.%Y  %H:%M:%S"), colors.lightGray, colors.black)
 
     local now = os.epoch("utc")
         local cardWidth = math.max(16, math.floor(w / 2))

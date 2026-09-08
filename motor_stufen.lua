@@ -94,7 +94,7 @@ local function draw()
     if not isActive() then
         redstone.setAnalogOutput(config.outputSide, 0)
         fillLine(1, colors.gray)
-        centerText(1, "Status Dashboard", colors.white, colors.gray)
+        centerText(1, "Motor Steuerung", colors.white, colors.gray)
         centerText(math.floor(h / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
         fillLine(h, colors.gray)
         centerTextInWidth(1, w, h, "STANDBY", colors.white, colors.gray)
@@ -103,7 +103,7 @@ local function draw()
 
     setOutput()
     fillLine(1, colors.blue)
-    centerText(1, "Steuerung", colors.white, colors.blue)
+    centerText(1, "Motor Steuerung", colors.white, colors.blue)
 
     local contentWidth = math.max(16, math.floor(w / 2))
     local startX = math.floor((w - contentWidth) / 2) + 1
@@ -113,8 +113,6 @@ local function draw()
     end
     drawOffButton(startX, contentWidth, startY + 8)
 
-    centerText(math.min(h - 2, startY + 10), "AUSGANGSSIGNAL", colors.lightGray, colors.black)
-    centerText(math.min(h - 1, startY + 11), outputEnabled and ("STUFE " .. selectedLevel .. "  |  REDSTONE " .. selectedLevel) or "AUS  |  REDSTONE 0", outputEnabled and palette[selectedLevel] or colors.red, colors.black)
     fillLine(h, colors.blue)
     centerTextInWidth(1, w, h, "AKTIV", colors.white, colors.blue)
 end
