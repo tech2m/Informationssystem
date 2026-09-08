@@ -25,6 +25,7 @@ if not monitor then error("Kein Monitor gefunden!") end
 monitor.setTextScale(config.textScale)
 local w, h = monitor.getSize()
 local selectedLevel = 1
+local outputEnabled = true
 
 local palette = {
     colors.cyan,
@@ -63,7 +64,7 @@ local function isActive()
 end
 
 local function setOutput()
-    if isActive() then
+    if isActive() and outputEnabled then
         redstone.setAnalogOutput(config.outputSide, selectedLevel)
     else
         redstone.setAnalogOutput(config.outputSide, 0)
@@ -79,6 +80,13 @@ local function drawLevelButton(level, x0, width, y)
     centerTextInWidth(x0, width, y, "STUFE " .. level, foreground, background)
 end
 
+local function drawOffButton(x0, width, y)
+    local background = outputEnabled and colors.gray or colors.red
+    local foreground = outputEnabled and colors.white or colors.black
+    fillLine(y, background)
+    centerTextInWidth(x0, width, y, "AUS", foreground, background)
+end
+
 local function draw()
     monitor.setBackgroundColor(colors.black)
     monitor.clear()
@@ -86,18 +94,17 @@ local function draw()
     if not isActive() then
         redstone.setAnalogOutput(config.outputSide, 0)
         fillLine(1, colors.gray)
-        centerText(1, "MOTOR CONTROL", colors.white, colors.gray)
+        centerText(1, "Status Dashboard", colors.white, colors.gray)
         centerText(math.floor(h / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
-        centerText(math.floor(h / 2) + 1, "Redstone-Signal erwartet", colors.lightGray, colors.black)
         fillLine(h, colors.gray)
-        centerTextInWidth(1, w, h, "STANDBY  |  AUSGANG 0", colors.white, colors.gray)
+        centerTextInWidth(1, w, h, "STANDBY", colors.white, colors.gray)
         return
     end
 
     setOutput()
     fillLine(1, colors.blue)
-    centerText(1, "MOTOR CONTROL", colors.white, colors.blue)
-    centerText(2, "MOTORSTUFE EINSTELLEN", colors.lightGray, colors.black)
+    centerText(1, "Status Dashboard", colors.white, colors.blue)
+    centerText(2, os.date("%d.%m.%Y  %H:%M:%S"), colors.lightGray, colors.black)
 
     local contentWidth = math.max(16, math.floor(w / 2))
     local startX = math.floor((w - contentWidth) / 2) + 1
@@ -105,11 +112,12 @@ local function draw()
     for level = 1, 4 do
         drawLevelButton(level, startX, contentWidth, startY + (level - 1) * 2)
     end
+    drawOffButton(startX, contentWidth, startY + 8)
 
-    centerText(math.min(h - 2, startY + 9), "AUSGANGSSIGNAL", colors.lightGray, colors.black)
-    centerText(math.min(h - 1, startY + 10), "STUFE " .. selectedLevel .. "  |  REDSTONE " .. selectedLevel, palette[selectedLevel], colors.black)
+    centerText(math.min(h - 2, startY + 10), "AUSGANGSSIGNAL", colors.lightGray, colors.black)
+    centerText(math.min(h - 1, startY + 11), outputEnabled and ("STUFE " .. selectedLevel .. "  |  REDSTONE " .. selectedLevel) or "AUS  |  REDSTONE 0", outputEnabled and palette[selectedLevel] or colors.red, colors.black)
     fillLine(h, colors.blue)
-    centerTextInWidth(1, w, h, "ACTIVE  |  TOUCH ZUR AUSWAHL", colors.white, colors.blue)
+    centerTextInWidth(1, w, h, "ACTIVE", colors.white, colors.blue)
 end
 
 local function refresh()
@@ -131,10 +139,17 @@ local function handleTouch()
                     local buttonY = startY + (level - 1) * 2
                     if y == buttonY or y == buttonY + 1 then
                         selectedLevel = level
+                        outputEnabled = true
                         setOutput()
                         draw()
                         break
                     end
+                end
+                local offY = startY + 8
+                if y == offY or y == offY + 1 then
+                    outputEnabled = false
+                    setOutput()
+                    draw()
                 end
             end
         end
