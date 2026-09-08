@@ -148,16 +148,16 @@ local function draw()
     local active = redstone.getInput(config.activationSide)
     if not active then
         fillLine(1, colors.gray)
-        centerText(1, "MOTOR CONTROL", colors.white, colors.gray)
+        centerText(1, "Status Dashboard", colors.white, colors.gray)
         centerText(math.floor(h / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
-        centerText(math.floor(h / 2) + 1, "Redstone-Signal erwartet", colors.lightGray, colors.black)
+        centerText(math.floor(h / 2) + 1, "Brücke muss aktiviert werden", colors.lightGray, colors.black)
         fillLine(h, colors.gray)
-        centerTextInWidth(1, w, h, "STANDBY  |  REDSTONE OFF", colors.white, colors.gray)
+        centerTextInWidth(1, w, h, "STANDBY", colors.white, colors.gray)
         return
     end
 
     fillLine(1, colors.blue)
-    centerText(1, "MOTOR CONTROL // LIVE", colors.white, colors.blue)
+    centerText(1, "Status Dashboard", colors.white, colors.blue)
     centerText(2, os.date("%d.%m.%Y  %H:%M:%S"), colors.lightGray, colors.black)
 
     local now = os.epoch("utc")
@@ -178,14 +178,13 @@ local function draw()
                 local statusText = online and (entry.value and "LAEUFT" or "STOPP") or "WARTET"
                 centerTextInWidth(x0, cardWidth - 1, y0, name, colors.orange, colors.black)
                 centerTextInWidth(x0, cardWidth - 1, y0 + 2, statusText, statusColor, colors.black)
-                centerTextInWidth(x0, cardWidth - 1, y0 + 4, "MOTORZUSTAND", colors.lightGray, colors.black)
             else
                 drawGauge(x0, y0, cardWidth - 1, config.gaugeHeight, entry, online)
             end
     end
 
     fillLine(h, colors.blue)
-    centerTextInWidth(1, w, h, active and "ACTIVE  |  REDSTONE ON" or "STANDBY  |  REDSTONE OFF", colors.white, colors.blue)
+    centerTextInWidth(1, w, h, active and "ACTIVE" or "STANDBY", colors.white, colors.blue)
 end
 
 -- ================= EMPFANGEN =================
