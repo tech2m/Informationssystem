@@ -2,30 +2,17 @@
     ====================================================
     MOTOR-STEUERUNG
     ====================================================
-    Waehlt eine Motorstufe von 1 bis 4 ueber den Monitor.
+    Waehlt eine Motorstufe von 1 bis 4 ueber den Computerbildschirm.
     Die gewaehlte Stufe wird als Redstone-Analogsignal ausgegeben.
     Ohne Aktivierungssignal bleibt die Ausgabe auf 0.
 ]]--
 
 local config = {
-    monitorSide = nil,       -- nil = Advanced Monitor automatisch suchen
     activationSide = "left", -- Redstone-Eingang zum Aktivieren
     outputSide = "right",    -- Redstone-Ausgang fuer Stufe 1 bis 4
-    textScale = 0.5,
 }
 
-local monitor
-if config.monitorSide then
-    monitor = peripheral.wrap(config.monitorSide)
-else
-    monitor = peripheral.find("monitor", function(_, candidate)
-        return candidate.isColor and candidate.isColor()
-    end) or peripheral.find("monitor")
-end
-if not monitor then error("Kein Monitor gefunden!") end
-
-monitor.setTextScale(config.textScale)
-local w, h = monitor.getSize()
+local w, h = term.getSize()
 local selectedLevel = 1
 local outputEnabled = false
 
@@ -37,28 +24,28 @@ local palette = {
 }
 
 local function fillLine(y, bg)
-    monitor.setBackgroundColor(bg)
-    monitor.setCursorPos(1, y)
-    monitor.write(string.rep(" ", w))
+    term.setBackgroundColor(bg)
+    term.setCursorPos(1, y)
+    term.write(string.rep(" ", w))
 end
 
 local function centerText(y, text, fg, bg)
     text = tostring(text or "")
-    monitor.setBackgroundColor(bg or colors.black)
-    monitor.setTextColor(fg or colors.white)
+    term.setBackgroundColor(bg or colors.black)
+    term.setTextColor(fg or colors.white)
     local x = math.max(1, math.floor((w - #text) / 2) + 1)
-    monitor.setCursorPos(x, y)
-    monitor.write(text)
+    term.setCursorPos(x, y)
+    term.write(text)
 end
 
 local function centerTextInWidth(x0, width, y, text, fg, bg)
     text = tostring(text or "")
     if #text > width then text = text:sub(1, width) end
-    monitor.setBackgroundColor(bg or colors.black)
-    monitor.setTextColor(fg or colors.white)
+    term.setBackgroundColor(bg or colors.black)
+    term.setTextColor(fg or colors.white)
     local x = x0 + math.max(0, math.floor((width - #text) / 2))
-    monitor.setCursorPos(x, y)
-    monitor.write(text)
+    term.setCursorPos(x, y)
+    term.write(text)
 end
 
 local function isActive()
@@ -90,8 +77,8 @@ local function drawOffButton(x0, width, y)
 end
 
 local function draw()
-    monitor.setBackgroundColor(colors.black)
-    monitor.clear()
+    term.setBackgroundColor(colors.black)
+    term.clear()
 
     if not isActive() then
         redstone.setAnalogOutput(config.outputSide, 0)
@@ -126,34 +113,30 @@ local function refresh()
     end
 end
 
-local function handleTouch()
+local function handleKey()
     while true do
-        local event, side, x, y = os.pullEvent("monitor_touch")
-        if (not config.monitorSide or side == config.monitorSide) and isActive() then
-            local contentWidth = math.max(16, math.floor(w / 2))
-            local startX = math.floor((w - contentWidth) / 2) + 1
-            local startY = math.max(4, math.floor(h / 2) - 3)
-            if x >= startX and x < startX + contentWidth then
-                for level = 1, 4 do
-                    local buttonY = startY + (level - 1) * 2
-                    if y == buttonY or y == buttonY + 1 then
-                        selectedLevel = level
-                        outputEnabled = true
-                        setOutput()
-                        draw()
-                        break
-                    end
-                end
-                local offY = startY + 8
-                if y == offY or y == offY + 1 then
-                    outputEnabled = false
-                    setOutput()
-                    draw()
-                end
+        local _, key = os.pullEvent("key")
+        if isActive() then
+            if key == keys.one then
+                selectedLevel = 1
+                outputEnabled = true
+            elseif key == keys.two then
+                selectedLevel = 2
+                outputEnabled = true
+            elseif key == keys.three then
+                selectedLevel = 3
+                outputEnabled = true
+            elseif key == keys.four then
+                selectedLevel = 4
+                outputEnabled = true
+            elseif key == keys.zero then
+                outputEnabled = false
             end
+            setOutput()
+            draw()
         end
     end
 end
 
 draw()
-parallel.waitForAny(refresh, handleTouch)
+parallel.waitForAny(refresh, handleKey)
