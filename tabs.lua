@@ -13,3 +13,5 @@ local monName = peripheral.getName(mon)
 -- Leitet die gesamte Multishell (inkl. Tab-Leiste) auf den Monitor um
 -- und führt dort die Startbefehle aus
 shell.run("monitor", monName, "multishell")
+shell.run("bg", "Durchsagen")
+shell.run("Motor")
