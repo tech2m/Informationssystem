@@ -18,7 +18,9 @@ local monitor
 if config.monitorSide then
     monitor = peripheral.wrap(config.monitorSide)
 else
-    monitor = peripheral.find("monitor")
+    monitor = peripheral.find("monitor", function(_, candidate)
+        return candidate.isColor and candidate.isColor()
+    end) or peripheral.find("monitor")
 end
 if not monitor then error("Kein Monitor gefunden!") end
 
