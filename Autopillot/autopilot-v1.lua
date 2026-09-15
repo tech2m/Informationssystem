@@ -10,6 +10,8 @@
 ]]
 
 local CONFIG = {
+    modemSide = "top",
+    protocol = "autopilot_control",
     gpsTimeout = 2,
     tick = 0.25,
     positionSamples = 3,
@@ -19,10 +21,8 @@ local CONFIG = {
 
     target = { x = 0, y = 100, z = 0 },
 
-    -- Sensoren: vorne, hinten, rechts, links; vorwaerts, rueckwaerts; hoehe
+    -- Sensoren: rechts, links; vorwaerts, rueckwaerts; hoehe
     sensors = {
-        gimbalFront = "top",
-        gimbalBack = "bottom",
         gimbalRight = "right",
         gimbalLeft = "left",
         velocityForward = "front",
@@ -48,6 +48,8 @@ local CONFIG = {
         brakingGain = 1.0,
     },
 }
+
+local autopilotEnabled = true
 
 local function clamp(value, low, high)
     return math.max(low, math.min(high, value))
@@ -176,6 +178,38 @@ local function printStatus(position, command, message)
     print(string.format("Lift: %.1f", command.lift))
 end
 
+local function commandLoop()
+    local modem = peripheral.wrap(CONFIG.modemSide)
+    if not modem then
+        error("Kein Modem an Seite '" .. CONFIG.modemSide .. "' gefunden!")
+    end
+    rednet.open(CONFIG.modemSide)
+
+    while true do
+        local senderId, message = rednet.receive(CONFIG.protocol)
+        if senderId and type(message) == "table" then
+            if message.action == "set_target" then
+                local x = tonumber(message.x)
+                local y = tonumber(message.y)
+                local z = tonumber(message.z)
+                if x and y and z then
+                    CONFIG.target.x = x
+                    CONFIG.target.y = y
+                    CONFIG.target.z = z
+                    rednet.send(senderId, { action = "target_updated", target = CONFIG.target }, CONFIG.protocol)
+                end
+            elseif message.action == "start" then
+                autopilotEnabled = true
+                rednet.send(senderId, { action = "started" }, CONFIG.protocol)
+            elseif message.action == "stop" then
+                autopilotEnabled = false
+                stopOutputs()
+                rednet.send(senderId, { action = "stopped" }, CONFIG.protocol)
+            end
+        end
+    end
+end
+
 local function run()
     local previousPosition = nil
     local heading = nil
@@ -192,13 +226,17 @@ local function run()
             print("Alle Ausgaenge wurden abgeschaltet.")
             sleep(CONFIG.tick)
         else
-            if previousPosition then
+            if not autopilotEnabled then
+                stopOutputs()
+                printStatus(position, { left = 0, right = 0, lift = 0 }, "AUTOPILOT AUS - START ZUM FORTSETZEN")
+                sleep(CONFIG.tick)
+            elseif previousPosition then
                 local newHeading = averageHeading(previousPosition, position)
                 if newHeading then heading = newHeading end
             end
-            previousPosition = position
+            if autopilotEnabled then previousPosition = position end
 
-            if heading then
+            if autopilotEnabled and heading then
                 local command = calculateCommand(position, heading, sensor)
                 applyCommand(command)
                 printStatus(position, command, command.arrived and "ZIEL ERREICHT" or "AUTOPILOT AKTIV")
@@ -214,7 +252,9 @@ local function run()
     end
 end
 
-local ok, errorMessage = xpcall(run, function(errorValue)
+local ok, errorMessage = xpcall(function()
+    parallel.waitForAny(run, commandLoop)
+end, function(errorValue)
     stopOutputs()
     return errorValue
 end)
