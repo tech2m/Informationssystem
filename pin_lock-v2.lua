@@ -8,7 +8,7 @@
 ]]--
 
 local config = {
-    outputSide = "back",     -- Redstone-Ausgang
+    outputSides = { "left", "right", "front", "back", "top", "bottom" },
     outputSignal = 15,        -- Signalstaerke bei korrektem PIN
     pin = "191014",          -- PIN hier aendern
 }
@@ -29,10 +29,9 @@ local function centerText(y, text, fg, bg)
 end
 
 local function setOutput()
-    if unlocked then
-        redstone.setAnalogOutput(config.outputSide, config.outputSignal)
-    else
-        redstone.setAnalogOutput(config.outputSide, 0)
+    local signal = unlocked and config.outputSignal or 0
+    for _, side in ipairs(config.outputSides) do
+        redstone.setAnalogOutput(side, signal)
     end
 end
 

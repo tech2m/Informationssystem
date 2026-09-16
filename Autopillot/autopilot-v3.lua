@@ -25,20 +25,20 @@ local CONFIG = {
     -- Jeder Relay kann mehrere Eintraege ueber seine eigenen Seiten bedienen.
     -- Fallback: Ein String wie "right" liest direkt am Computer.
     sensors = {
-        gimbalRight = { relay = "redstone_relay_0", side = "right" },
-        gimbalLeft = { relay = "redstone_relay_0", side = "left" },
-        velocityForward = { relay = "redstone_relay_1", side = "front" },
-        velocityReverse = { relay = "redstone_relay_1", side = "back" },
-        altitude = { relay = "redstone_relay_2", side = "bottom" },
+        gimbalRight = { relay = "left", side = "right" },
+        gimbalLeft = { relay = "left", side = "left" },
+        velocityForward = { relay = "left", side = "front" },
+        velocityReverse = { relay = "left", side = "back" },
+        altitude = { relay = "left", side = "bottom" },
     },
 
     -- Ausgangs-Relay-Endpunkte. liftLeft/liftRight speisen jeweils drei Propeller.
     outputs = {
-        thrustLeft = { relay = "redstone_relay_3", side = "left" },
-        thrustRight = { relay = "redstone_relay_3", side = "right" },
-        reverse = { relay = "redstone_relay_3", side = "back" },
-        liftLeft = { relay = "redstone_relay_4", side = "left" },
-        liftRight = { relay = "redstone_relay_4", side = "right" },
+        thrustLeft = { relay = "right", side = "left" },
+        thrustRight = { relay = "right", side = "right" },
+        reverse = { relay = "right", side = "back" },
+        liftLeft = { relay = "right", side = "front" },
+        liftRight = { relay = "right", side = "bottom" },
     },
 
     control = {
