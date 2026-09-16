@@ -12,6 +12,7 @@
 local CONFIG = {
     modemSide = "top",
     protocol = "autopilot_control",
+    useExternalSensors = true, -- false: nur GPS verwenden
     gpsTimeout = 2,
     tick = 0.25,
     positionSamples = 3,
@@ -34,7 +35,7 @@ local CONFIG = {
 
     -- Ausgangs-Relay-Endpunkte. liftLeft/liftRight speisen jeweils drei Propeller.
     outputs = {
-        thrustLeft = { relay = "right", side = "left" },
+        thrustLeft = { relay = "right", side = "top" },
         thrustRight = { relay = "right", side = "right" },
         reverse = { relay = "right", side = "back" },
         liftLeft = { relay = "right", side = "front" },
@@ -88,6 +89,23 @@ local function readSensors()
     return result
 end
 
+local function getGpsSensors(position, previousPosition)
+    local horizontalSpeed = 0
+    if previousPosition then
+        local dx = position.x - previousPosition.x
+        local dz = position.z - previousPosition.z
+        horizontalSpeed = math.sqrt(dx * dx + dz * dz) / CONFIG.tick
+    end
+
+    return {
+        gimbalRight = 0,
+        gimbalLeft = 0,
+        velocityForward = horizontalSpeed,
+        velocityReverse = 0,
+        altitude = clamp((position.y / CONFIG.altitudeMax) * 15, 0, 15),
+    }
+end
+
 local function writeOutput(endpoint, value)
     local relay, side = getEndpoint(endpoint)
     if not relay then return false end
@@ -109,8 +127,10 @@ local function validateEndpoint(endpoint, label)
 end
 
 local function validateConfiguration()
-    for name, endpoint in pairs(CONFIG.sensors) do
-        validateEndpoint(endpoint, "Sensor " .. name)
+    if CONFIG.useExternalSensors then
+        for name, endpoint in pairs(CONFIG.sensors) do
+            validateEndpoint(endpoint, "Sensor " .. name)
+        end
     end
     for name, endpoint in pairs(CONFIG.outputs) do
         validateEndpoint(endpoint, "Ausgang " .. name)
@@ -260,7 +280,8 @@ local function run()
 
     while true do
         local position = getPosition()
-        local sensor = readSensors()
+        local sensor = position and (CONFIG.useExternalSensors and readSensors() or
+            getGpsSensors(position, previousPosition))
         if not position or not sensor then
             stopOutputs()
             term.clear()
