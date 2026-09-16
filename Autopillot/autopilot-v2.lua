@@ -21,22 +21,24 @@ local CONFIG = {
 
     target = { x = 0, y = 100, z = 0 },
 
-    -- Sensoren: rechts, links; vorwaerts, rueckwaerts; hoehe
+    -- Redstone-Relay-Endpunkte. Namen mit peripheral.getNames() pruefen.
+    -- Jeder Relay kann mehrere Eintraege ueber seine eigenen Seiten bedienen.
+    -- Fallback: Ein String wie "right" liest direkt am Computer.
     sensors = {
-        gimbalRight = "right",
-        gimbalLeft = "left",
-        velocityForward = "front",
-        velocityReverse = "back",
-        altitude = "bottom",
+        gimbalRight = { relay = "redstone_relay_0", side = "right" },
+        gimbalLeft = { relay = "redstone_relay_0", side = "left" },
+        velocityForward = { relay = "redstone_relay_1", side = "front" },
+        velocityReverse = { relay = "redstone_relay_1", side = "back" },
+        altitude = { relay = "redstone_relay_2", side = "bottom" },
     },
 
-    -- Ausgaenge. liftLeft/liftRight speisen jeweils drei Propeller.
+    -- Ausgangs-Relay-Endpunkte. liftLeft/liftRight speisen jeweils drei Propeller.
     outputs = {
-        thrustLeft = "left",
-        thrustRight = "right",
-        reverse = "back",
-        liftLeft = "front",
-        liftRight = "top",
+        thrustLeft = { relay = "redstone_relay_3", side = "left" },
+        thrustRight = { relay = "redstone_relay_3", side = "right" },
+        reverse = { relay = "redstone_relay_3", side = "back" },
+        liftLeft = { relay = "redstone_relay_4", side = "left" },
+        liftRight = { relay = "redstone_relay_4", side = "right" },
     },
 
     control = {
@@ -50,13 +52,29 @@ local CONFIG = {
 }
 
 local autopilotEnabled = true
+local relayCache = {}
 
 local function clamp(value, low, high)
     return math.max(low, math.min(high, value))
 end
 
-local function readAnalog(side)
-    local ok, value = pcall(redstone.getAnalogInput, side)
+local function getEndpoint(endpoint)
+    if type(endpoint) == "string" then
+        return redstone, endpoint
+    end
+    if type(endpoint) ~= "table" or type(endpoint.relay) ~= "string" or type(endpoint.side) ~= "string" then
+        return nil, nil
+    end
+    if not relayCache[endpoint.relay] then
+        relayCache[endpoint.relay] = peripheral.wrap(endpoint.relay)
+    end
+    return relayCache[endpoint.relay], endpoint.side
+end
+
+local function readAnalog(endpoint)
+    local relay, side = getEndpoint(endpoint)
+    if not relay then return nil end
+    local ok, value = pcall(relay.getAnalogInput, side)
     if not ok then return nil end
     return tonumber(value) or 0
 end
@@ -70,8 +88,33 @@ local function readSensors()
     return result
 end
 
-local function writeOutput(side, value)
-    redstone.setAnalogOutput(side, math.floor(clamp(value, 0, 15) + 0.5))
+local function writeOutput(endpoint, value)
+    local relay, side = getEndpoint(endpoint)
+    if not relay then return false end
+    local ok = pcall(relay.setAnalogOutput, side, math.floor(clamp(value, 0, 15) + 0.5))
+    return ok
+end
+
+local function validateEndpoint(endpoint, label)
+    local relay, side = getEndpoint(endpoint)
+    if not relay then
+        error("Relay-Endpunkt fuer " .. label .. " nicht gefunden oder ungueltig")
+    end
+    if type(endpoint) == "table" and type(relay.getAnalogInput) ~= "function" then
+        error("Peripheral '" .. endpoint.relay .. "' ist kein Redstone-Relay")
+    end
+    if not side then
+        error("Keine Redstone-Seite fuer " .. label .. " konfiguriert")
+    end
+end
+
+local function validateConfiguration()
+    for name, endpoint in pairs(CONFIG.sensors) do
+        validateEndpoint(endpoint, "Sensor " .. name)
+    end
+    for name, endpoint in pairs(CONFIG.outputs) do
+        validateEndpoint(endpoint, "Ausgang " .. name)
+    end
 end
 
 local function stopOutputs()
@@ -251,6 +294,8 @@ local function run()
         end
     end
 end
+
+validateConfiguration()
 
 local ok, errorMessage = xpcall(function()
     parallel.waitForAny(run, commandLoop)

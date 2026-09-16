@@ -6,7 +6,7 @@
 local CONFIG = {
     modemSide = "back",
     activationSide = "bottom",
-    emergencySide = "top",
+    emergencySide = "front",
     serverId = 430, -- ID des Computers, auf dem autopilot-v1.lua laeuft
     protocol = "autopilot_control",
     step = 10,
