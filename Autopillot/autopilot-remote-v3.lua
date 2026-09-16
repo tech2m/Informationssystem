@@ -4,17 +4,20 @@
 ]]
 
 local CONFIG = {
-    modemSide = "top",
+    modemSide = "back",
     activationSide = "bottom",
-    serverId = 0, -- ID des Computers, auf dem autopilot-v1.lua laeuft
+    emergencySide = "top",
+    serverId = 430, -- ID des Computers, auf dem autopilot-v1.lua laeuft
     protocol = "autopilot_control",
     step = 10,
-    target = { x = 0, y = 100, z = 0 },
+    target = { x = 1984, y = 64, z = -1262 },
 }
 
 local buttons = {}
 local status = "Bereit"
 local width, height
+local emergencyLatched = false
+local send
 
 local function clearButtons()
     buttons = {}
@@ -69,6 +72,22 @@ local function isActive()
     return redstone.getInput(CONFIG.activationSide)
 end
 
+local function isEmergencyActive()
+    return redstone.getInput(CONFIG.emergencySide)
+end
+
+local function updateEmergencyState()
+    if isEmergencyActive() then
+        if not emergencyLatched then
+            send({ action = "stop" })
+            emergencyLatched = true
+            status = "NOT-STOPP AKTIV"
+        end
+    else
+        emergencyLatched = false
+    end
+end
+
 local function draw()
     width, height = term.getSize()
     clearButtons()
@@ -77,6 +96,15 @@ local function draw()
 
     fillLine(1, colors.blue)
     centerText(1, "AUTOPILOT FERNBEDIENUNG", colors.white, colors.blue)
+
+    if isEmergencyActive() then
+        clearButtons()
+        centerText(math.floor(height / 2) - 1, "NOT-STOPP AKTIV", colors.white, colors.red)
+        centerText(math.floor(height / 2) + 1, "REDSTONE-SIGNAL OBEN ENTFERNEN", colors.orange, colors.black)
+        fillLine(height, colors.red)
+        centerText(height, "ALLE AUSGAENGE AUS", colors.white, colors.red)
+        return
+    end
 
     if not isActive() then
         clearButtons()
@@ -124,7 +152,7 @@ local function editAxis(axis)
     setAxis(axis, read())
 end
 
-local function send(message)
+send = function(message)
     rednet.send(CONFIG.serverId, message, CONFIG.protocol)
 end
 
@@ -153,10 +181,11 @@ if not modem then error("Kein Modem an Seite '" .. CONFIG.modemSide .. "' gefund
 rednet.open(CONFIG.modemSide)
 
 while true do
+    updateEmergencyState()
     draw()
     local event, _, x, y = os.pullEvent()
     if event == "mouse_click" or event == "monitor_touch" then
-        if isActive() then
+        if isActive() and not isEmergencyActive() then
             for _, button in ipairs(buttons) do
                 if x >= button.x1 and x <= button.x2 and y >= button.y1 and y <= button.y2 then
                     handleButton(button)
