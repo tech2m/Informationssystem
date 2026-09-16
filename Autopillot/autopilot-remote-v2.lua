@@ -5,6 +5,7 @@
 
 local CONFIG = {
     modemSide = "top",
+    activationSide = "bottom",
     serverId = 0, -- ID des Computers, auf dem autopilot-v1.lua laeuft
     protocol = "autopilot_control",
     step = 10,
@@ -64,6 +65,10 @@ local function drawAxis(row, name, value)
     drawButton(x, row, buttonWidth, "EINGABE", colors.orange, colors.black, "edit", name)
 end
 
+local function isActive()
+    return redstone.getInput(CONFIG.activationSide)
+end
+
 local function draw()
     width, height = term.getSize()
     clearButtons()
@@ -72,6 +77,15 @@ local function draw()
 
     fillLine(1, colors.blue)
     centerText(1, "AUTOPILOT FERNBEDIENUNG", colors.white, colors.blue)
+
+    if not isActive() then
+        clearButtons()
+        centerText(math.floor(height / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
+        fillLine(height, colors.gray)
+        centerText(height, "STANDBY", colors.white, colors.gray)
+        return
+    end
+
     centerText(2, status, colors.lightGray, colors.black)
 
     term.setTextColor(colors.yellow)
@@ -142,10 +156,12 @@ while true do
     draw()
     local event, _, x, y = os.pullEvent()
     if event == "mouse_click" or event == "monitor_touch" then
-        for _, button in ipairs(buttons) do
-            if x >= button.x1 and x <= button.x2 and y >= button.y1 and y <= button.y2 then
-                handleButton(button)
-                break
+        if isActive() then
+            for _, button in ipairs(buttons) do
+                if x >= button.x1 and x <= button.x2 and y >= button.y1 and y <= button.y2 then
+                    handleButton(button)
+                    break
+                end
             end
         end
     elseif event == "key" and x == keys.q then
