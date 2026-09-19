@@ -157,15 +157,13 @@ local function draw()
     local active = redstone.getInput(config.activationSide)
     if not active then
         fillLine(1, colors.gray)
-        centerText(1, "Status Dashboard", colors.white, colors.gray)
+        centerText(1, "Unsinkbar 4", colors.white, colors.gray)
         centerText(math.floor(h / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
-        fillLine(h, colors.gray)
-        centerTextInWidth(1, w, h, "STANDBY", colors.white, colors.gray)
         return
     end
 
     fillLine(1, colors.blue)
-    centerText(1, "Status Dashboard", colors.white, colors.blue)
+    centerText(1, "Unsinkbar 4", colors.white, colors.blue)
 
     local now = os.epoch("utc")
         local cardWidth = math.max(16, math.floor(w / 2))
@@ -191,8 +189,6 @@ local function draw()
             end
     end
 
-    fillLine(h, colors.blue)
-    centerTextInWidth(1, w, h, active and "AKTIV" or "STANDBY", colors.white, colors.blue)
 end
 
 -- ================= EMPFANGEN =================
