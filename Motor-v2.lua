@@ -96,16 +96,14 @@ local function draw()
     if not isActive() then
         redstone.setAnalogOutput(config.outputSide, 0)
         fillLine(1, colors.gray)
-        centerText(1, "Motor Steuerung", colors.white, colors.gray)
+        centerText(1, "Unsinkbar 4", colors.white, colors.gray)
         centerText(math.floor(h / 2) - 1, "DISPLAY DEAKTIVIERT", colors.orange, colors.black)
-        fillLine(h, colors.gray)
-        centerTextInWidth(1, w, h, "STANDBY", colors.white, colors.gray)
         return
     end
 
     setOutput()
     fillLine(1, colors.blue)
-    centerText(1, "Motor Steuerung", colors.white, colors.blue)
+    centerText(1, "Unsinkbar 4", colors.white, colors.blue)
 
     local contentWidth = math.max(16, math.floor(w / 2))
     local startX = math.floor((w - contentWidth) / 2) + 1
@@ -115,8 +113,6 @@ local function draw()
     end
     drawOffButton(startX, contentWidth, startY + 8)
 
-    fillLine(h, colors.blue)
-    centerTextInWidth(1, w, h, "AKTIV", colors.white, colors.blue)
 end
 
 local function refresh()
