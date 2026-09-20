@@ -44,7 +44,7 @@ local config = {
         {
             name = "Fan Links Speed",
             category = "GAUGE",
-            id = "Create_RotationSpeedController_4",
+            id = "Create_Speedometer_1",
             unit = "RPM",
             max = 256,
             read = function(peripheralObject)
@@ -54,7 +54,7 @@ local config = {
         {
             name = "Fan Rechts Speed",
             category = "GAUGE",
-            id = "Create_RotationSpeedController_1",
+            id = "Create_Speedometer_2",
             unit = "RPM",
             max = 256,
             read = function(peripheralObject)
