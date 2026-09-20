@@ -1,23 +1,67 @@
 --[[
     ====================================================
-    INFOSYSTEM - ZENTRALRECHNER (Server)
+    INFOSYSTEM - ZENTRALRECHNER (Create: Avionics)
     ====================================================
-    Empfaengt Sensordaten (Name, Kategorie, Wert, Max, Einheit)
-    von einzelnen Client-Computern per rednet.receive()
-    (Punkt-zu-Punkt, kein Broadcast) und stellt sie als
-    runde Tacho-Gauges (z.B. fuer Create-RPM/Stress) auf
-    einem Advanced Monitor dar.
+    Liest Create: Avionics-Peripherals direkt ueber ihre IDs
+    aus dem Wired-Modem-Netzwerk und zeigt die Werte auf dem
+    Monitor an. Die IDs stehen in config.sensors.
 ]]--
 
 -- ================= KONFIGURATION =================
 
 local config = {
-    modemSide   = "top",   -- Seite des Modems
     monitorSide = nil,      -- z.B. "right" - nil = automatisch suchen
     activationSide = "left", -- Redstone-Signal zum Aktivieren der Anzeige
-    protocol    = "rsinfo", -- muss mit client.lua uebereinstimmen
     textScale   = 0.5,      -- Textgroesse auf dem Monitor
-    staleAfter  = 15,       -- Sekunden ohne Update -> "Offline"
+    staleAfter  = 3,        -- Sekunden ohne erfolgreiches Lesen -> "Offline"
+    refreshInterval = 0.5,
+
+    -- IDs mit `peripheral.getNames()` im Terminal pruefen.
+    -- Die Namen sind die Netzwerk-IDs des Wired-Modems, nicht Computer-IDs.
+    sensors = {
+        {
+            name = "Motor Status",
+            category = "STATUS",
+            id = "Create_Speedometer_0",
+            unit = "RPM",
+            max = 256,
+            read = function(peripheralObject)
+                local speed = tonumber(peripheralObject.getSpeed()) or 0
+                return speed > 0, 1
+            end,
+        },
+        {
+            name = "Motor Stress",
+            category = "GAUGE",
+            id = "Create_Speedometer_1",
+            unit = "SU",
+            read = function(peripheralObject)
+                local stress = tonumber(peripheralObject.getStress()) or 0
+                local capacity = tonumber(peripheralObject.getStressCapacity()) or 1
+                return stress, math.max(1, capacity)
+            end,
+        },
+        {
+            name = "Fan Links Speed",
+            category = "GAUGE",
+            id = "Create_RotationSpeedController_4",
+            unit = "RPM",
+            max = 256,
+            read = function(peripheralObject)
+                return tonumber(peripheralObject.getSpeed()) or 0
+            end,
+        },
+        {
+            name = "Fan Rechts Speed",
+            category = "GAUGE",
+            id = "Create_RotationSpeedController_1",
+            unit = "RPM",
+            max = 256,
+            read = function(peripheralObject)
+                return tonumber(peripheralObject.getSpeed()) or 0
+            end,
+        },
+    },
 
     -- Gauge-Groesse in Zeichen (Breite x Hoehe der "Kachel")
     gaugeWidth  = 16,
@@ -29,10 +73,6 @@ local config = {
 }
 
 -- ================= PERIPHERIE =================
-
-local modem = peripheral.wrap(config.modemSide)
-if not modem then error("Kein Modem an Seite '" .. config.modemSide .. "' gefunden!") end
-rednet.open(config.modemSide)
 
 local monitor
 if config.monitorSide then
@@ -46,15 +86,24 @@ monitor.setTextScale(config.textScale)
 local w, h = monitor.getSize()
 
 print("Zentralrechner gestartet.")
-print("Eigene Computer-ID: " .. os.getComputerID())
-print("(Diese ID in den Clients als 'centralID' eintragen)")
-print("Protokoll: " .. config.protocol)
 print("Monitor: " .. w .. "x" .. h)
+print("Verfuegbare Peripherals im Netzwerk:")
+for _, id in ipairs(peripheral.getNames()) do
+    print("  " .. id .. " (" .. tostring(peripheral.getType(id)) .. ")")
+end
 
 -- ================= DATENHALTUNG =================
 
--- data[name] = { category, value, max, unit, lastUpdate, sender }
+-- data[name] = { category, value, max, unit, lastUpdate, id, error }
 local data = {}
+local sensorPeripherals = {}
+
+for _, sensor in ipairs(config.sensors) do
+    sensorPeripherals[sensor.name] = peripheral.wrap(sensor.id)
+    if not sensorPeripherals[sensor.name] then
+        print("WARNUNG: Sensor-ID nicht gefunden: " .. sensor.id)
+    end
+end
 
 local categoryColors = {}
 local palette = {
@@ -148,6 +197,36 @@ local function drawGauge(x0, y0, width, height, entry, online)
     centerTextInWidth(x0, width, y0 + 4, valueStr, online and colors.white or colors.gray, colors.black)
 end
 
+-- ================= SENSORWERTE LESEN =================
+
+local function readSensors()
+    local now = os.epoch("utc")
+    for _, sensor in ipairs(config.sensors) do
+        local peripheralObject = sensorPeripherals[sensor.name]
+        local entry = data[sensor.name] or {
+            name = sensor.name,
+            category = sensor.category,
+            unit = sensor.unit,
+            max = sensor.max or 1,
+        }
+
+        if peripheralObject then
+            local ok, value, max = pcall(sensor.read, peripheralObject)
+            if ok and value ~= nil then
+                entry.value = value
+                entry.max = tonumber(max) or sensor.max or entry.max
+                entry.lastUpdate = now
+                entry.error = nil
+            else
+                entry.error = "Lesefehler"
+            end
+        else
+            entry.error = "Nicht gefunden"
+        end
+
+        data[sensor.name] = entry
+    end
+end
 -- ================= UI ZEICHNEN =================
 
 local function draw()
@@ -166,57 +245,37 @@ local function draw()
     centerText(1, "Unsinkbar 4", colors.white, colors.blue)
 
     local now = os.epoch("utc")
-        local cardWidth = math.max(16, math.floor(w / 2))
-        local positions = {
-            { "Motor Status", 1, 4 },
-            { "Motor Stress", cardWidth + 1, 4 },
-            { "Fan Links Speed", 1, 13 },
-            { "Fan Rechts Speed", cardWidth + 1, 13 },
-        }
+    local cardWidth = math.max(16, math.floor(w / 2))
+    local positions = {
+        { "Motor Status", 1, 4 },
+        { "Motor Stress", cardWidth + 1, 4 },
+        { "Fan Links Speed", 1, 13 },
+        { "Fan Rechts Speed", cardWidth + 1, 13 },
+    }
 
     for _, item in ipairs(positions) do
-            local name, x0, y0 = item[1], item[2], item[3]
-            local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
-            local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
-            if name == "Motor Status" then
-                local motorRunning = entry.value == true or (type(entry.value) == "number" and entry.value > 0)
-                local statusColor = online and (motorRunning and colors.lime or colors.red) or colors.gray
-                local statusText = online and (motorRunning and "LAEUFT" or "STOPP") or "WARTET"
-                centerTextInWidth(x0, cardWidth - 1, y0, name, colors.orange, colors.black)
-                centerTextInWidth(x0, cardWidth - 1, y0 + 2, statusText, statusColor, colors.black)
-            else
-                drawGauge(x0, y0, cardWidth - 1, config.gaugeHeight, entry, online)
-            end
-    end
-
-end
-
--- ================= EMPFANGEN =================
-
-local function listen()
-    while true do
-        local senderId, message, protocol = rednet.receive(config.protocol)
-        if type(message) == "table" and message.name and message.category then
-            data[message.name] = {
-                name       = message.name,
-                category   = message.category,
-                value      = message.value,
-                max        = message.max,
-                unit       = message.unit,
-                lastUpdate = os.epoch("utc"),
-                sender     = senderId,
-            }
-            draw()
+        local name, x0, y0 = item[1], item[2], item[3]
+        local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
+        local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
+        if name == "Motor Status" then
+            local motorRunning = entry.value == true or (type(entry.value) == "number" and entry.value > 0)
+            local statusColor = online and (motorRunning and colors.lime or colors.red) or colors.gray
+            local statusText = online and (motorRunning and "LAEUFT" or "STOPP") or "WARTET"
+            centerTextInWidth(x0, cardWidth - 1, y0, name, colors.orange, colors.black)
+            centerTextInWidth(x0, cardWidth - 1, y0 + 2, statusText, statusColor, colors.black)
+        else
+            drawGauge(x0, y0, cardWidth - 1, config.gaugeHeight, entry, online)
         end
     end
 end
 
 local function refresh()
     while true do
-        sleep(1)
+        readSensors()
         draw()
+        sleep(config.refreshInterval)
     end
 end
 
 draw()
-parallel.waitForAny(listen, refresh)
+parallel.waitForAny(refresh)
