@@ -27,7 +27,7 @@ local config = {
             max = 256,
             read = function(peripheralObject)
                 local speed = tonumber(peripheralObject.getSpeed()) or 0
-                return speed > 0, 1
+                return math.abs(speed) > 0, 1
             end,
         },
         {
@@ -48,7 +48,7 @@ local config = {
             unit = "RPM",
             max = 256,
             read = function(peripheralObject)
-                return tonumber(peripheralObject.getSpeed()) or 0
+                return math.abs(tonumber(peripheralObject.getSpeed()) or 0)
             end,
         },
         {
@@ -58,7 +58,7 @@ local config = {
             unit = "RPM",
             max = 256,
             read = function(peripheralObject)
-                return tonumber(peripheralObject.getSpeed()) or 0
+                return math.abs(tonumber(peripheralObject.getSpeed()) or 0)
             end,
         },
     },
@@ -186,11 +186,7 @@ local function drawGauge(x0, y0, width, height, entry, online)
     local unit = entry.unit or ""
     local valueStr
     if online then
-        if name == "Motor Stress" then
-            valueStr = string.format("%.0f %%", fraction * 100)
-        else
-            valueStr = string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "")
-        end
+        valueStr = string.format("%.0f", value) .. (unit ~= "" and (" " .. unit) or "")
     else
         valueStr = "--"
     end
@@ -258,7 +254,7 @@ local function draw()
         local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
         local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
         if name == "Motor Status" then
-            local motorRunning = entry.value == true or (type(entry.value) == "number" and entry.value > 0)
+            local motorRunning = entry.value == true or (type(entry.value) == "number" and math.abs(entry.value) > 0)
             local statusColor = online and (motorRunning and colors.lime or colors.red) or colors.gray
             local statusText = online and (motorRunning and "LAEUFT" or "STOPP") or "WARTET"
             centerTextInWidth(x0, cardWidth - 1, y0, name, colors.orange, colors.black)
