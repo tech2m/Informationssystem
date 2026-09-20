@@ -28,6 +28,12 @@ local function centerText(y, text, fg, bg)
     term.write(text)
 end
 
+local function fillLine(y, bg)
+    monitor.setBackgroundColor(bg)
+    monitor.setCursorPos(1, y)
+    monitor.write(string.rep(" ", w))
+end
+
 local function setOutput()
     local signal = unlocked and config.outputSignal or 0
     for _, side in ipairs(config.outputSides) do
