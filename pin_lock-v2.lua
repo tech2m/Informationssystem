@@ -40,6 +40,9 @@ local function draw()
     term.clear()
     setOutput()
 
+    fillLine(1, colors.gray)
+    centerText(1, "Unsinkbar 4", colors.white, colors.gray)
+
     if unlocked then
         centerText(math.floor(h / 2), "FREIGEGEBEN - ENTER zum deaktivieren", colors.lime, colors.black)
         return
