@@ -11,7 +11,7 @@
 
 local config = {
     monitorSide = nil,      -- z.B. "right" - nil = automatisch suchen
-    activationSide = "left", -- Redstone-Signal zum Aktivieren der Anzeige
+    activationSide = "right", -- Redstone-Signal zum Aktivieren der Anzeige
     textScale   = 0.5,      -- Textgroesse auf dem Monitor
     staleAfter  = 3,        -- Sekunden ohne erfolgreiches Lesen -> "Offline"
     refreshInterval = 0.5,
@@ -33,7 +33,7 @@ local config = {
         {
             name = "Motor Stress",
             category = "GAUGE",
-            id = "Create_Speedometer_1",
+            id = "Create_Stressometer_1",
             unit = "SU",
             read = function(peripheralObject)
                 local stress = tonumber(peripheralObject.getStress()) or 0
