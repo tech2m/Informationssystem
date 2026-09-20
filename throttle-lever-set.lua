@@ -1,5 +1,5 @@
-local throttleLever = peripheral.wrap(throttle_lever_2)
-local throttleLever = peripheral.wrap(throttle_lever_1)
+local throttleLever = peripheral.wrap("throttle_lever_2")
+local throttleLever = peripheral.wrap("throttle_lever_1")
 
 while true do
     for position = 0, 15 do
