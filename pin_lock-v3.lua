@@ -29,9 +29,9 @@ local function centerText(y, text, fg, bg)
 end
 
 local function fillLine(y, bg)
-    monitor.setBackgroundColor(bg)
-    monitor.setCursorPos(1, y)
-    monitor.write(string.rep(" ", w))
+    term.setBackgroundColor(bg)
+    term.setCursorPos(1, y)
+    term.write(string.rep(" ", w))
 end
 
 local function setOutput()
