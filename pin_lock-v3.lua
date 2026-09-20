@@ -47,7 +47,7 @@ local function draw()
     setOutput()
 
     fillLine(1, colors.gray)
-    centerText(1, "Unsinkbar 4", colors.white, colors.gray)
+    centerText(1, "Schiff Tommy", colors.white, colors.gray)
 
     if unlocked then
         centerText(math.floor(h / 2), "FREIGEGEBEN - ENTER zum deaktivieren", colors.lime, colors.black)
