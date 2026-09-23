@@ -54,64 +54,59 @@ local function draw()
     fillLine(1, colors.gray)
     centerText(1, "Schiff Tommy", colors.white, colors.gray)
 
-    if unlocked then
+    if unlocked and not isLockedByRedstone() then
         centerText(math.floor(h / 2), "FREIGEGEBEN - ENTER zum deaktivieren", colors.lime, colors.black)
         return
     end
 
     centerText(math.floor(h / 2) - 2, "PIN-FREIGABE", colors.lightBlue, colors.black)
     centerText(math.floor(h / 2) + 2, message, messageColor, colors.black)
+
+    -- Stellt den Cursor exakt an die Stelle der originalen read()-Eingabe
+    local inputY = math.min(h, math.floor(h / 2) + 4)
+    term.setCursorPos(1, inputY)
+    term.setTextColor(colors.white)
+    term.setBackgroundColor(colors.black)
+    term.write(string.rep("*", #enteredPin))
 end
 
--- Task 1: Die urspruengliche Hauptlogik & UI
-local function mainLoop()
-    while true do
-        draw()
+-- Hauptschleife
+while true do
+    if isLockedByRedstone() then
+        unlocked = false
+    end
 
-        if unlocked then
-            while true do
-                local event, key = os.pullEvent("key")
-                if key == keys.enter then
-                    unlocked = false
-                    enteredPin = ""
-                    message = "PIN EINGEBEN"
-                    messageColor = colors.orange
-                    break
-                end
-            end
-        else
-            term.setCursorPos(1, math.min(h, math.floor(h / 2) + 4))
-            term.setTextColor(colors.white)
-            term.setBackgroundColor(colors.black)
-            local input = read("*")
-            
-            -- Falls waehrend der Eingabe von unten gesperrt wurde:
-            if isLockedByRedstone() then
-                unlocked = false
-            elseif input == config.pin then
-                unlocked = true
-                message = "PIN KORREKT"
-                messageColor = colors.lime
-            else
-                message = "FALSCHER PIN"
-                messageColor = colors.red
-            end
+    draw()
+
+    local event, p1 = os.pullEvent()
+
+    if event == "redstone" then
+        if isLockedByRedstone() then
+            unlocked = false
             enteredPin = ""
         end
-    end
-end
-
--- Task 2: Hintergrund-Ueberwachung der Redstone-Sperre
-local function redstoneMonitor()
-    while true do
-        if isLockedByRedstone() and unlocked then
-            unlocked = false
-            -- Sendet ein kuenstliches Event, um blockierende read()- oder pullEvent()-Aufrufe sofort abzubrechen
-            os.queueEvent("redstone_lock")
+    elseif event == "char" and not unlocked and not isLockedByRedstone() then
+        enteredPin = enteredPin .. p1
+    elseif event == "key" then
+        if p1 == keys.enter then
+            if unlocked then
+                unlocked = false
+                enteredPin = ""
+                message = "PIN EINGEBEN"
+                messageColor = colors.orange
+            elseif not isLockedByRedstone() then
+                if enteredPin == config.pin then
+                    unlocked = true
+                    message = "PIN KORREKT"
+                    messageColor = colors.lime
+                else
+                    message = "FALSCHER PIN"
+                    messageColor = colors.red
+                end
+                enteredPin = ""
+            end
+        elseif p1 == keys.backspace and #enteredPin > 0 and not unlocked then
+            enteredPin = enteredPin:sub(1, -2)
         end
-        os.pullEvent("redstone")
     end
 end
-
--- Beide Prozesse parallel ausfuehren
-parallel.waitForAny(mainLoop, redstoneMonitor)
