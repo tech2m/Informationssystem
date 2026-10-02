@@ -10,7 +10,7 @@
 -- ================= KONFIGURATION =================
 
 local config = {
-    monitorSide = nil,      -- z.B. "right" - nil = automatisch suchen
+    monitorSide = back,      -- z.B. "right" - nil = automatisch suchen
     activationSide = "right", -- Redstone-Signal zum Aktivieren der Anzeige
     textScale   = 0.5,      -- Textgroesse auf dem Monitor
     staleAfter  = 3,        -- Sekunden ohne erfolgreiches Lesen -> "Offline"
