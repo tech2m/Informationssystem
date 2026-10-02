@@ -20,7 +20,7 @@ local config = {
     -- Die Namen sind die Netzwerk-IDs des Wired-Modems, nicht Computer-IDs.
     sensors = {
         {
-            name = "Motor Status",
+            name = "Thrust Motor Status",
             category = "STATUS",
             id = "Create_Speedometer_0",
             unit = "RPM",
@@ -59,6 +59,17 @@ local config = {
             max = 256,
             read = function(peripheralObject)
                 return math.abs(tonumber(peripheralObject.getSpeed()) or 0)
+            end,
+        },
+        {
+            name = "Stabilizer Motor Status",
+            category = "STATUS",
+            id = "Create_Speedometer_4",
+            unit = "RPM",
+            max = 256,
+            read = function(peripheralObject)
+                local speed = tonumber(peripheralObject.getSpeed()) or 0
+                return math.abs(speed) > 0, 1
             end,
         },
     },
