@@ -254,17 +254,18 @@ local function draw()
     local now = os.epoch("utc")
     local cardWidth = math.max(16, math.floor(w / 2))
     local positions = {
-        { "Motor Status", 1, 4 },
+        { "Thrust Motor Status", 1, 4 },
         { "Motor Stress", cardWidth + 1, 4 },
         { "Fan Links Speed", 1, 13 },
         { "Fan Rechts Speed", cardWidth + 1, 13 },
+        { "Stabilizer Motor Status", 1, 22 },
     }
 
     for _, item in ipairs(positions) do
         local name, x0, y0 = item[1], item[2], item[3]
         local entry = data[name] or { name = name, value = 0, max = 100, unit = "" }
         local online = entry.lastUpdate and (now - entry.lastUpdate) / 1000 <= config.staleAfter
-        if name == "Motor Status" then
+        if name == "Thrust Motor Status" or name == "Stabilizer Motor Status" then
             local motorRunning = entry.value == true or (type(entry.value) == "number" and math.abs(entry.value) > 0)
             local statusColor = online and (motorRunning and colors.lime or colors.red) or colors.gray
             local statusText = online and (motorRunning and "LAEUFT" or "STOPP") or "WARTET"
