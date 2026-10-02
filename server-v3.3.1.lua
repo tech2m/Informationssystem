@@ -68,8 +68,8 @@ local config = {
             unit = "RPM",
             max = 256,
             read = function(peripheralObject)
-                local speed = tonumber(peripheralObject.getSpeed()) or 0
-                return math.abs(speed) > 0, 1
+                local speed2 = tonumber(peripheralObject.getSpeed()) or 0
+                return math.abs(speed2) > 0, 1
             end,
         },
     },
